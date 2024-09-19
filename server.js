@@ -12,6 +12,14 @@ require('dotenv').config();
 
 const MenuItem=require('./models/MenuItem');
 
+// middleware function
+const logTime=(req,res,next)=>{
+    console.log(`${new Date().toLocaleString()} Request made to: ${req.originalUrl}`);
+    next(); // Move on to next phase
+}
+
+app.use(logTime);
+
 app.get('/',(req,res)=>{
     res.send('Welcome to my website!')
 });
