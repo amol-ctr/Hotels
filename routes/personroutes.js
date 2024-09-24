@@ -5,14 +5,29 @@ const router=express.Router();
 //importing person model
 const Person=require('./../models/Person');
 
-router.post('/',async (req,res)=>{
+const {jwtMiddleware,generatetoken}=require('./../jwt');
+
+// POST method for signup by person
+router.post('/signup',async (req,res)=>{
     try{
         const data=req.body     //assuming request body contains the person data
         const newPerson=new Person(data);   // creating person object using data
 
-        const response=await newPerson.save();  //saving it in database
+        const result=await newPerson.save();  //saving it in database
         console.log('Data Saved Successfully!');
-        res.status(200).json(response);
+
+        // Payload for generating token
+        const payload={
+            id:result.id,
+            username:result.username
+        }
+        
+        // Generating token using payload
+        const token=generatetoken(payload);
+
+        console.log('Token is:',token);
+        
+        res.status(200).json({response:result,token:token});
     }
     catch(err){
         console.log('Error:',err);
@@ -21,7 +36,54 @@ router.post('/',async (req,res)=>{
     
 })
 
-router.get('/',async (req,res)=>{
+// POST request for login by user
+router.post('/login',async(req,res)=>{
+    try {      
+        // Extract username and password from request body
+        const {username,password}=req.body;
+    
+        // Find the user using the username
+        const user=await Person.findOne({username:username});
+    
+        // Check if user exists and password is correct
+        if(!user || !(await user.comparePassword(password))){
+            return res.status(401).json({error:'Invalid Username or Password'});
+        }
+    
+        // generate token
+        const payload={
+            id:user.id,
+            username:user.username
+        }
+    
+        const token=generatetoken(payload);
+    
+        res.status(200).json({token:token});
+    } 
+    catch (err) {
+        console.log(err);
+        res.status(401).json({error:err});
+    }
+
+})
+
+// Profile route
+router.get('/profile',jwtMiddleware,async(req,res)=>{
+    try {
+        const data=req.user;
+
+        const ID=data.id;
+        const user= await Person.findById(ID);
+        res.status(200).json({user});
+    } 
+    catch (err) {
+        console.log(err);
+        res.status(400).json({err:'Internal server error'});
+    }
+})
+
+// GET method for person
+router.get('/',jwtMiddleware,async (req,res)=>{
     try{
         const data=await Person.find();
         console.log('Data found Successfully!');
@@ -80,6 +142,7 @@ router.put('/:id',async (req,res)=>{
     }
 })
 
+// Deleting a record using ID
 router.delete('/:id',async (req,res)=>{
     try {
         

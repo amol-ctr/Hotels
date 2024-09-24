@@ -4,27 +4,28 @@ const app=express();
 // establishing database connection
 const db=require('./db');   
 
+const passport=require('./auth');
+
 // Body Parser used to extract body from POST request by client
 const bodyParser=require('body-parser');
 app.use(bodyParser.json());
 
 require('dotenv').config();
 
-const MenuItem=require('./models/MenuItem');
-
 // middleware function
 const logTime=(req,res,next)=>{
     console.log(`${new Date().toLocaleString()} Request made to: ${req.originalUrl}`);
     next(); // Move on to next phase
-}
+};
 
-app.use(logTime);
+// app.use(logTime);
 
+app.use(passport.initialize());
+
+const localAuthMiddleware=passport.authenticate('local',{session:false});
 app.get('/',(req,res)=>{
     res.send('Welcome to my website!')
 });
-
-
 
 const personroutes=require('./routes/personroutes');
 app.use('/person',personroutes);
